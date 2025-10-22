@@ -1,0 +1,38 @@
+{
+  "name": "react-lite-translation",
+  "version": "1.0.7",
+  "description": "A lightweight, dependency-free translation system for React and Next.js with in-memory caching and RTL support.",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "babel src --out-dir dist --copy-files",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "react",
+    "translation",
+    "i18n",
+    "lightweight",
+    "nextjs",
+    "rtl"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hassool/react-lite-translation.git"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.26.0"
+  }
+}
