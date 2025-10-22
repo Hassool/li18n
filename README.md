@@ -18,9 +18,9 @@ Designed for developers who value simplicity, speed, and clean code.
 ## 📦 Installation
 
 ```bash
-npm install react-lite-translate
+npm install react-lite-translation
 # or
-yarn add react-lite-translate
+yarn add react-lite-translation
 ```
 
 ## 🚀 Quick Start
