@@ -1,113 +1,131 @@
 "use client";
-
-import {
-  createContext,
-  useCallback,
-  useState,
-  useEffect,
-  useContext,
-} from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from "react";
 import { isBrowser, safeLocalStorage } from "../core/ssrSafe.js";
 
-export const TranslationContext = createContext();
+const TranslationContext = createContext();
 
-export function TranslationProvider({ children, config, modules }) {
-  const [lang, setLang] = useState(config.DEFAULT_LANGUAGE);
+export const TranslationProvider = ({ config, modules = [], sort = false, children }) => {
   const [translations, setTranslations] = useState({});
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const [language, setLanguage] = useState(() => {
+    const saved = safeLocalStorage.get("app_language");
+    return saved || config.defaultLanguage || "en";
+  });
+
   const [cache, setCache] = useState({});
+  const isInitialMount = useRef(true);
 
-  const loadTranslations = useCallback(
-    async (language, initial = false) => {
-      if (initial) setIsInitialLoad(true);
+  const apiEndpoint = useMemo(() => config.API_ENDPOINT, [config.API_ENDPOINT]);
+  const localModules = useMemo(() => config.localModules, [config.localModules]);
 
-      if (config.ENABLE_CACHING && cache[language]) {
-        setTranslations(cache[language]);
-        if (initial) setIsInitialLoad(false);
+  const rtlLanguages = ["ar", "he", "fa", "ur"];
+
+  // Apply HTML language and direction
+  useEffect(() => {
+    if (!isBrowser) return;
+    const isRTL = rtlLanguages.includes(language);
+    document.documentElement.setAttribute("lang", language);
+    document.documentElement.setAttribute("dir", isRTL ? "rtl" : "ltr");
+  }, [language]);
+
+  // Persist language selection
+  useEffect(() => {
+    safeLocalStorage.set("app_language", language);
+  }, [language]);
+
+  useEffect(() => {
+    const fetchTranslations = async () => {
+      setLoading(true);
+      setError(null);
+
+      const cacheKey = sort ? `${language}_sorted` : language;
+      if (cache[cacheKey]) {
+        setTranslations(cache[cacheKey]);
+        setLoading(false);
         return;
       }
 
       try {
-        const res = await fetch(`${config.API_ENDPOINT}?lang=${language}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (config.ENABLE_CACHING)
-          setCache((prev) => ({ ...prev, [language]: data }));
-        setTranslations(data);
+        if (sort) {
+          const fetchPromises = modules.map(async (module) => {
+            const endpoint = `${apiEndpoint}/${module}?lang=${language}`;
+            try {
+              const response = await fetch(endpoint);
+              if (!response.ok) throw new Error(`Failed to fetch ${module}`);
+              const data = await response.json();
+              return { module, data };
+            } catch (err) {
+              console.warn(`Failed to fetch ${module}, using local fallback`);
+              const fallback = localModules?.[module]?.[language];
+              return { module, data: fallback || {} };
+            }
+          });
+
+          const results = await Promise.all(fetchPromises);
+          const combined = results.reduce((acc, { module, data }) => {
+            acc[module] = data;
+            return acc;
+          }, {});
+          setTranslations(combined);
+          setCache((prev) => ({ ...prev, [cacheKey]: combined }));
+        } else {
+          const endpoint = `${apiEndpoint}?lang=${language}`;
+          try {
+            const response = await fetch(endpoint);
+            if (!response.ok) throw new Error("Failed to fetch translations");
+            const data = await response.json();
+            setTranslations(data);
+            setCache((prev) => ({ ...prev, [cacheKey]: data }));
+          } catch (err) {
+            console.warn("Failed to fetch translations, using local fallback");
+            const fallback = {};
+            modules.forEach((module) => {
+              const data = localModules?.[module]?.[language];
+              if (data) fallback[module] = data;
+            });
+            setTranslations(fallback);
+          }
+        }
       } catch (err) {
-        console.warn("Falling back to local modules:", err);
-        const fallback = Object.keys(modules).reduce((acc, key) => {
-          acc[key] = modules[key].default;
-          return acc;
-        }, {});
-        setTranslations(fallback);
+        setError(err.message);
+        console.error("Translation fetch error:", err);
       } finally {
-        if (initial) setIsInitialLoad(false);
+        setLoading(false);
       }
-    },
-    [cache]
-  );
+    };
 
-  const changeLanguage = useCallback(
-    async (newLang) => {
-      if (!config.AVAILABLE_LANGUAGES.includes(newLang))
-        newLang = config.DEFAULT_LANGUAGE;
-      if (newLang === lang) return;
+    fetchTranslations();
+    isInitialMount.current = false;
+  }, [language, apiEndpoint, modules, sort, localModules]);
 
-      await loadTranslations(newLang);
-      setLang(newLang);
-      safeLocalStorage.set("lang", newLang);
-
-      if (isBrowser) {
-        document.documentElement.lang = newLang;
-        const isRTL = config.RTL_LANGUAGES.includes(newLang);
-        document.documentElement.dir = isRTL ? "rtl" : "ltr";
-        document.documentElement.classList.toggle("rtl", isRTL);
-      }
-    },
-    [lang, loadTranslations]
-  );
-
-  useEffect(() => {
-    const storedLang =
-      safeLocalStorage.get("lang") || config.DEFAULT_LANGUAGE;
-    setLang(storedLang);
-
-    if (isBrowser) {
-      document.documentElement.lang = storedLang;
-      const isRTL = config.RTL_LANGUAGES.includes(storedLang);
-      document.documentElement.dir = isRTL ? "rtl" : "ltr";
-      document.documentElement.classList.toggle("rtl", isRTL);
+  // Deep key access
+  const t = (key, moduleName = null) => {
+    const keys = key.split(".");
+    let value = sort && moduleName ? translations[moduleName] : translations;
+    for (const k of keys) {
+      if (value && typeof value === "object") value = value[k];
+      else return key;
     }
+    return value || key;
+  };
 
-    loadTranslations(storedLang, true);
-  }, [loadTranslations]);
-
-  const t = useCallback(
-    (key, def = key) => {
-      const path = key.split(".");
-      const getValue = (obj) =>
-        path.reduce((acc, k) => (acc ? acc[k] : undefined), obj);
-      return getValue(translations) ?? def;
-    },
-    [translations]
-  );
+  const value = {
+    translations,
+    language,
+    setLanguage,
+    loading,
+    error,
+    t,
+    isRTL: rtlLanguages.includes(language),
+  };
 
   return (
-    <TranslationContext.Provider
-      value={{
-        lang,
-        t,
-        changeLanguage,
-        isRTL: config.RTL_LANGUAGES.includes(lang),
-        availableLanguages: config.AVAILABLE_LANGUAGES,
-        languageNames: config.LANGUAGE_NAMES,
-        isLoading: isInitialLoad,
-      }}
-    >
-      {isInitialLoad ? (
+    <TranslationContext.Provider value={value}>
+      {loading ? (
         <div className="translation-loader">
-          <div className="spinner"></div>
+          <div className="spinner" />
           <p>Loading translations...</p>
         </div>
       ) : (
@@ -115,11 +133,11 @@ export function TranslationProvider({ children, config, modules }) {
       )}
     </TranslationContext.Provider>
   );
-}
+};
 
-export function useTranslation() {
-  const ctx = useContext(TranslationContext);
-  if (!ctx)
+export const useTranslation = () => {
+  const context = useContext(TranslationContext);
+  if (!context)
     throw new Error("useTranslation must be used within TranslationProvider");
-  return ctx;
-}
+  return context;
+};
