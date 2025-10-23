@@ -1,6 +1,6 @@
 {
   "name": "react-lite-translation",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A lightweight, dependency-free translation system for React and Next.js with in-memory caching and RTL support.",
   "main": "dist/index.js",
   "module": "dist/index.js",
