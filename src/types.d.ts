@@ -1,3 +1,5 @@
+import React from 'react';
+
 export interface TranslationConfig {
   AVAILABLE_LANGUAGES: string[];
   DEFAULT_LANGUAGE: string;
@@ -5,20 +7,37 @@ export interface TranslationConfig {
   ENABLE_CACHING: boolean;
   API_ENDPOINT?: string;
   LANGUAGE_NAMES?: Record<string, string>;
+  localModules?: Record<string, Record<string, any>>;
 }
 
-export function useTranslation(): {
+export interface TranslationContextValue {
+  translations: Record<string, any>;
   lang: string;
-  t: (key: string, def?: string) => string;
+  language: string;
   changeLanguage: (lang: string) => Promise<void>;
-  isRTL: boolean;
+  setLanguage: (lang: string) => Promise<void>; // deprecated but kept for compatibility
+  loading: boolean;
   isLoading: boolean;
+  error: string | null;
+  t: (key: string, params?: Record<string, any> | string, moduleName?: string | null) => string;
+  isRTL: boolean;
   availableLanguages: string[];
   languageNames: Record<string, string>;
-};
+}
 
-export function TranslationProvider(props: {
+export function useTranslation(): TranslationContextValue;
+
+export interface TranslationProviderProps {
   children: React.ReactNode;
   config: TranslationConfig;
-  modules: Record<string, Record<string, any>>;
-}): JSX.Element;
+  modules?: string[] | Record<string, any>;
+  sort?: boolean;
+}
+
+export function TranslationProvider(props: TranslationProviderProps): JSX.Element;
+
+export function buildModuleConfig(translations: Record<string, Record<string, object>>): Record<string, Record<string, any>>;
+
+export function deepMerge(base: any, override: any): any;
+export function deepEqual(a: any, b: any): boolean;
+export function isObject(v: any): boolean;

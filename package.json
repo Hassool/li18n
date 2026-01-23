@@ -24,8 +24,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Hassool/react-lite-translation.git"
+    "url": "git+https://github.com/Hassool/react-lite-translation.git"
   },
+  "bugs": {
+    "url": "https://github.com/Hassool/react-lite-translation/issues"
+  },
+  "homepage": "https://github.com/Hassool/react-lite-translation#readme",
   "peerDependencies": {
     "react": ">=17.0.0",
     "react-dom": ">=17.0.0"

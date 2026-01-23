@@ -11,7 +11,7 @@ export const TranslationProvider = ({ config, modules = [], sort = false, childr
   
   const [language, setLanguage] = useState(() => {
     const saved = safeLocalStorage.get("app_language");
-    return saved || config.defaultLanguage || "en";
+    return saved || config.DEFAULT_LANGUAGE || "en";
   });
 
   const [cache, setCache] = useState({});
@@ -20,7 +20,11 @@ export const TranslationProvider = ({ config, modules = [], sort = false, childr
   const apiEndpoint = useMemo(() => config.API_ENDPOINT, [config.API_ENDPOINT]);
   const localModules = useMemo(() => config.localModules, [config.localModules]);
 
-  const rtlLanguages = ["ar", "he", "fa", "ur"];
+  const rtlLanguages = useMemo(() => config.RTL_LANGUAGES || ["ar", "he", "fa", "ur"], [config.RTL_LANGUAGES]);
+
+  const changeLanguage = async (newLang) => {
+    setLanguage(newLang);
+  };
 
   // Apply HTML language and direction
   useEffect(() => {
@@ -28,7 +32,7 @@ export const TranslationProvider = ({ config, modules = [], sort = false, childr
     const isRTL = rtlLanguages.includes(language);
     document.documentElement.setAttribute("lang", language);
     document.documentElement.setAttribute("dir", isRTL ? "rtl" : "ltr");
-  }, [language]);
+  }, [language, rtlLanguages]);
 
   // Persist language selection
   useEffect(() => {
@@ -49,7 +53,7 @@ export const TranslationProvider = ({ config, modules = [], sort = false, childr
 
       try {
         if (sort) {
-          const fetchPromises = modules.map(async (module) => {
+          const fetchPromises = (Array.isArray(modules) ? modules : []).map(async (module) => {
             const endpoint = `${apiEndpoint}/${module}?lang=${language}`;
             try {
               const response = await fetch(endpoint);
@@ -71,17 +75,27 @@ export const TranslationProvider = ({ config, modules = [], sort = false, childr
           setTranslations(combined);
           setCache((prev) => ({ ...prev, [cacheKey]: combined }));
         } else {
-          const endpoint = `${apiEndpoint}?lang=${language}`;
-          try {
-            const response = await fetch(endpoint);
-            if (!response.ok) throw new Error("Failed to fetch translations");
-            const data = await response.json();
-            setTranslations(data);
-            setCache((prev) => ({ ...prev, [cacheKey]: data }));
-          } catch (err) {
-            console.warn("Failed to fetch translations, using local fallback");
+          if (apiEndpoint) {
+            try {
+              const response = await fetch(`${apiEndpoint}?lang=${language}`);
+              if (!response.ok) throw new Error("Failed to fetch translations");
+              const data = await response.json();
+              setTranslations(data);
+              setCache((prev) => ({ ...prev, [cacheKey]: data }));
+            } catch (err) {
+              console.warn("Failed to fetch translations, using local fallback");
+              const fallback = {};
+              (Array.isArray(modules) ? modules : []).forEach((module) => {
+                const data = localModules?.[module]?.[language];
+                if (data) fallback[module] = data;
+              });
+              setTranslations(fallback);
+            }
+          } else {
+            // Local-only mode
             const fallback = {};
-            modules.forEach((module) => {
+            const modulesList = Array.isArray(modules) ? modules : Object.keys(localModules || {});
+            modulesList.forEach((module) => {
               const data = localModules?.[module]?.[language];
               if (data) fallback[module] = data;
             });
@@ -100,25 +114,50 @@ export const TranslationProvider = ({ config, modules = [], sort = false, childr
     isInitialMount.current = false;
   }, [language, apiEndpoint, modules, sort, localModules]);
 
-  // Deep key access
-  const t = (key, moduleName = null) => {
+  /**
+   * Translate a key with optional interpolation and fallback
+   * @param {string} key - The key to translate (e.g., "home.title")
+   * @param {Record<string, any>} params - Variables for interpolation
+   * @param {string|null} moduleName - Optional module name for sorted translations
+   * @returns {string}
+   */
+  const t = (key, params = {}, moduleName = null) => {
     const keys = key.split(".");
     let value = sort && moduleName ? translations[moduleName] : translations;
+    
     for (const k of keys) {
       if (value && typeof value === "object") value = value[k];
-      else return key;
+      else {
+        value = key; // Fallback to key
+        break;
+      }
     }
-    return value || key;
+
+    if (typeof value !== "string") {
+        // If it's a fallback or missing, return the key or the fallback string if params is a string
+        if (typeof params === 'string') return params;
+        return String(value || key);
+    }
+
+    // Basic interpolation: replace {var} with params.var
+    return value.replace(/\{(\w+)\}/g, (match, p1) => {
+      return params[p1] !== undefined ? params[p1] : match;
+    });
   };
 
   const value = {
     translations,
+    lang: language,
     language,
-    setLanguage,
+    changeLanguage,
+    setLanguage: changeLanguage, // Maintain backward compatibility for now
     loading,
+    isLoading: loading,
     error,
     t,
     isRTL: rtlLanguages.includes(language),
+    availableLanguages: config.AVAILABLE_LANGUAGES || [],
+    languageNames: config.LANGUAGE_NAMES || {},
   };
 
   return (
