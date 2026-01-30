@@ -1,10 +1,10 @@
 {
-  "name": "li18n",
+  "name": "@hassool_now/li18n",
   "version": "1.0.0",
   "description": "A lightweight, dependency-free translation system for React and Next.js — with built-in RTL support, in-memory caching, and instant language switching.",
   "main": "dist/index.js",
   "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/types.d.ts",
   "files": [
     "dist"
   ],
