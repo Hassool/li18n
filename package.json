@@ -1,5 +1,5 @@
 {
-  "name": "@hassool_now/li18n",
+  "name": "li18n",
   "version": "1.0.0",
   "description": "A lightweight, dependency-free translation system for React and Next.js — with built-in RTL support, in-memory caching, and instant language switching.",
   "main": "dist/index.js",
