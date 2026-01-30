@@ -2,7 +2,7 @@
 
 A lightweight, dependency-free translation system for React and Next.js — with built-in RTL support, in-memory caching, and instant language switching.
 
-> **v2.0 Update**: Now with improved TypeScript support, smarter interpolation, and enhanced module loading.
+> **v1.0 Update**: Now with improved TypeScript support, smarter interpolation, and enhanced module loading.
 
 Designed for developers who value simplicity, speed, and clean code.
 
