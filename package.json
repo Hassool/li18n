@@ -1,7 +1,7 @@
 {
-  "name": "react-lite-translation",
+  "name": "li18n",
   "version": "2.0.0",
-  "description": "A lightweight, dependency-free translation system for React and Next.js with in-memory caching and RTL support.",
+  "description": "A lightweight, dependency-free translation system for React and Next.js — with built-in RTL support, in-memory caching, and instant language switching.",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,12 +24,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Hassool/react-lite-translation.git"
+    "url": "git+https://github.com/Hassool/li18n.git"
   },
   "bugs": {
-    "url": "https://github.com/Hassool/react-lite-translation/issues"
+    "url": "https://github.com/Hassool/li18n/issues"
   },
-  "homepage": "https://github.com/Hassool/react-lite-translation#readme",
+  "homepage": "https://github.com/Hassool/li18n#readme",
   "peerDependencies": {
     "react": ">=17.0.0",
     "react-dom": ">=17.0.0"

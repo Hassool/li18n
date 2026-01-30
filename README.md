@@ -1,4 +1,4 @@
-# 🌍 React Lite Translation Engine
+# li18n — A React Lite Internationalization Engine
 
 A lightweight, dependency-free translation system for React and Next.js — with built-in RTL support, in-memory caching, and instant language switching.
 
@@ -20,9 +20,9 @@ Designed for developers who value simplicity, speed, and clean code.
 ## 📦 Installation
 
 ```bash
-npm install react-lite-translation
+npm install li18n
 # or
-yarn add react-lite-translation
+yarn add li18n
 ```
 
 ## 🚀 Quick Start
@@ -71,7 +71,7 @@ Register them in a central logical mapping:
 
 ```javascript
 // src/translations/index.js
-import { buildModuleConfig } from "react-lite-translation";
+import { buildModuleConfig } from "li18n";
 import { HOME_EN, HOME_AR } from "./home";
 
 // Provides a structured way to access local translations
@@ -91,7 +91,7 @@ Wrap your root application with the `TranslationProvider`.
 // app/layout.jsx (Next.js) or src/App.jsx (React)
 "use client";
 
-import { TranslationProvider } from "react-lite-translation";
+import { TranslationProvider } from "li18n";
 import { TRANSLATION_CONFIG } from "./lt.config";
 import { modules } from "./src/translations";
 
@@ -114,7 +114,7 @@ export default function RootLayout({ children }) {
 Use the `useTranslation` hook to access translations and control language settings.
 
 ```javascript
-import { useTranslation } from "react-lite-translation";
+import { useTranslation } from "li18n";
 
 function Hero() {
   const { t, changeLanguage, lang, isRTL } = useTranslation();
